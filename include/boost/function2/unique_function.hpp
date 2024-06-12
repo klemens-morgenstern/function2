@@ -18,12 +18,11 @@ namespace function2
 template<typename ... Signatures>
 struct unique_function : callable<Signatures...>
 {
-  template<typename Func>
-  constexpr unique_function(Func&& func /* TODO: Add SFINAE here */)
-    : callable<Signatures...>(new std::decay_t<Func>(std::forward<Func>(func)))
-    , do_delete_{[](void * p) {delete static_cast<std::decay_t<Func>*>(p);}}
+  template<typename Func, typename = typename enable_for_signatures<std::decay_t<Func>, Signatures...>::type>
+  constexpr unique_function(Func&& func)
+    : callable<Signatures...>(new std::decay_t<Func>(std::forward<Func>(func)),
+                              deletable_vtable<Signatures...>::template get_vtable<std::decay_t<Func>>())
   {
-
   }
 
   constexpr unique_function(const unique_function & rhs) noexcept = delete;
@@ -44,12 +43,10 @@ struct unique_function : callable<Signatures...>
   ~unique_function()
   {
     if (*this)
-      // TODO: move do_delete_ into the VTABLE
-      (*do_delete_)(this->target_);
+      static_cast<deletable_vtable<Signatures...>*>(this->vtable_)->do_delete(this->target_);
   }
 
  private:
-  void (*do_delete_)(void*);
 };
 
 }

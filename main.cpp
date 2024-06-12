@@ -10,7 +10,7 @@ int main()
 
   auto x = [i = 1](auto value) mutable { printf("X %d %s\n", i++, typeid(value).name()); return value;};
 
-  fu2::function_ref<int(int), double(double)> rf{x};
+  fu2::function_view<int(int), double(double)> rf{x};
   fu2::unique_function<int(int), double(double)> uf{x};
 
   printf("XYZ %s\n", rf.target_type().name());
@@ -25,7 +25,10 @@ int main()
   printf("Dbl %f\n", uf(4.2));
 
   //std::get<0>(f.entries)((void*)pm);
-  //fu2::function_ref<int(), int(int), int(int, int)> ff;
+  //fu2::function_view<int(), int(int), int(int, int)> ff;
+
+  static_assert(fu2::is_callable_with<decltype(x), double(double)>::value);
+  static_assert(!fu2::is_callable_with<decltype(x), int()>::value);
 
   return 0;
 }

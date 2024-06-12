@@ -49,7 +49,15 @@ struct vtable_entry
 
   template<typename Func, typename ... Args>
   constexpr static auto make_func_impl(Func *, std::tuple<Args...> *)
-  -> typename std::enable_if<callable_traits::is_invocable_v<Func, Args...>, type>::type *
+  -> typename std::enable_if<
+      callable_traits::is_invocable<
+            typename std::conditional<callable_traits::is_rvalue_reference_member_v<Func>, Func &&, Func &>::type, Args...>::value &&
+      std::is_convertible<
+        decltype(std::declval<
+            typename std::conditional<callable_traits::is_rvalue_reference_member_v<Func>, Func &&, Func &>::type
+            >()(std::declval<Args>()...)),
+        return_type
+      >::value, type>::type *
   {
     return +[](this_cv *this_, Args ... args) noexcept(is_noexcept)
     {
@@ -102,10 +110,33 @@ struct vtable
 };
 
 template<typename ... Signature>
-struct copyable_vtable : vtable<Signature...>
+struct deletable_vtable : vtable<Signature...>
 {
   template<typename Func>
-  constexpr copyable_vtable(Func *f) : vtable<Signature...>(f)
+  constexpr deletable_vtable(Func *f)
+      : vtable<Signature...>(f),
+        do_delete([](void * me) { delete static_cast<Func*>(me); })
+  {
+  }
+
+  template<typename Func>
+  static deletable_vtable &get_vtable()
+  {
+    static deletable_vtable vt{static_cast<Func *>(nullptr)};
+    return vt;
+  }
+
+  void(*do_delete)(void*);
+};
+
+template<typename ... Signature>
+struct copyable_vtable : deletable_vtable<Signature...>
+{
+  template<typename Func>
+  constexpr copyable_vtable(Func *f)
+      : deletable_vtable<Signature...>(f),
+        copy_construct([](void * me) -> void * { return new Func(*static_cast<Func*>(me)); }),
+        copy_assign([](void * lhs, void * rhs) { *static_cast<Func*>(lhs) = *static_cast<Func*>(rhs); })
   {
   }
 
@@ -117,7 +148,7 @@ struct copyable_vtable : vtable<Signature...>
   }
 
   void* (*copy_construct)(void*);
-  void* (*move_construct)(void*);
+  void  (*copy_assign)   (void*, void *);
 };
 
 }

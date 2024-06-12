@@ -10,7 +10,9 @@
 
 #include <boost/function2/callable.hpp>
 #include <boost/function2/function.hpp>
-#include <boost/function2/function_ref.hpp>
+#include <boost/function2/function_view.hpp>
+#include <boost/function2/overload.hpp>
+#include <boost/function2/unique_function.hpp>
 #include <boost/function2/vtable.hpp>
 
 #endif //BOOST_FUNCTION2_HPP

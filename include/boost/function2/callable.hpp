@@ -9,6 +9,8 @@
 #define BOOST_FUNCTION2_CALLABLE_HPP
 
 #include <boost/function2/vtable.hpp>
+#include <boost/mp11/function.hpp>
+#include <boost/type_traits/make_void.hpp>
 
 namespace boost
 {
@@ -123,12 +125,37 @@ struct callable : detail::callable_base<Signatures, Signatures...>...
   constexpr callable& operator=(const callable & rhs) noexcept = default;
   constexpr callable& operator=(callable && rhs) noexcept = default;
 
+  constexpr callable& operator=(std::nullptr_t ) noexcept
+  {
+    target_ = nullptr;
+    vtable_ = nullptr;
+    return *this;
+  }
+
 
   void * target_ = nullptr;
   vtable<Signatures...> * vtable_ = nullptr;
 };
 
-}
+
+template<typename Func,
+         typename Signature,
+         typename = void>
+struct is_callable_with  : std::false_type {};
+
+template<typename Func,
+    typename Signature>
+struct is_callable_with<
+    Func, Signature,
+    void_t<decltype(vtable_entry<Signature>::make_func(static_cast<Func*>(nullptr)))>> : std::true_type
+{
+};
+
+template<typename Func, typename ... Signatures>
+using enable_for_signatures = std::enable_if<mp11::mp_and<is_callable_with<Func, Signatures>...>::value >;
+
+
+};
 }
 
 #endif //BOOST_FUNCTION2_CALLABLE_HPP
