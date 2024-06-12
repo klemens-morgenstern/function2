@@ -1,0 +1,29 @@
+
+interface<void()> if;
+
+function<void()> f;
+unique_function<void()> f = []{};
+
+unique_function<void()> f{[]{}, std::allocator_arg, std::allocator<void>{}};
+shared_function<void()> sf = []{};
+
+function_ref f = []{}; //
+
+static_function<4096, void()> sf;
+static_function = []{};
+
+unique_static_function f;
+
+
+
+// or
+
+pmr::monotonic_resource res;
+pmr::unique_function<void()> u2{[]{}, &res};
+
+// alloc support?
+
+basic_function<std::allocator<void>, void()> bf;
+
+function<int(const char*, ...)> printfz;
+
